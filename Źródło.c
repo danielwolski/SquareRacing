@@ -5,27 +5,60 @@
 #define PLAYER_SQUARE_SIZE 20
 #define PLAYER_SPEED 5
 
-#define WINDOW_WIDTH 1800
+#define WINDOW_WIDTH 1600
 #define WINDOW_HEIGHT 700
 
-#define TRACK_MARGIN 100
+#define TRACK_MARGIN 130
 #define INNER_MARGIN 250
 
 #define TIMER_ID 1
 #define TIMER_INTERVAL 3
 
 void DrawTrack(HDC hdc) {
-    //czarny prostokat trasy
+    // Czarny prostokąt trasy
     HBRUSH brush = CreateSolidBrush(RGB(0, 0, 0));
     HBRUSH oldBrush = SelectObject(hdc, brush);
     Rectangle(hdc, TRACK_MARGIN, TRACK_MARGIN, WINDOW_WIDTH - TRACK_MARGIN, WINDOW_HEIGHT - TRACK_MARGIN);
     SelectObject(hdc, oldBrush);
     DeleteObject(brush);
 
-    //bialy prostokat wewnatrz trasy
+    // Biały prostokąt wewnątrz trasy
     brush = CreateSolidBrush(RGB(255, 255, 255));
     oldBrush = SelectObject(hdc, brush);
     Rectangle(hdc, INNER_MARGIN, INNER_MARGIN, WINDOW_WIDTH - INNER_MARGIN, WINDOW_HEIGHT - INNER_MARGIN);
+    SelectObject(hdc, oldBrush);
+    DeleteObject(brush);
+
+    // Rysowanie białych półkoli na lewym i prawym boku toru
+    brush = CreateSolidBrush(RGB(0, 0, 0));
+    oldBrush = SelectObject(hdc, brush);
+
+    // Lewa część zaokrąglona - środek prostokota ktory zawiera elpisa znajduje sie idealnie na linii z dawnym bokiem toru
+    //BOOL Ellipse(
+    //    HDC hdc,    // uchwyt kontekstu urządzenia (ang. device context) powiązanego z oknem lub innym obiektem rysowniczym
+    //    int left,   // współrzędna x lewego górnego rogu prostokąta otaczającego elipsę
+    //    int top,    // współrzędna y lewego górnego rogu prostokąta otaczającego elipsę
+    //    int right,  // współrzędna x prawego dolnego rogu prostokąta otaczającego elipsę
+    //    int bottom  // współrzędna y prawego dolnego rogu prostokąta otaczającego elipsę
+    //);
+    Ellipse(hdc, TRACK_MARGIN - TRACK_MARGIN/1.1, TRACK_MARGIN, TRACK_MARGIN + TRACK_MARGIN/1.1, WINDOW_HEIGHT - TRACK_MARGIN);
+    // Prawa część zaokrąglona
+    Ellipse(hdc, WINDOW_WIDTH - TRACK_MARGIN - TRACK_MARGIN/1.1, TRACK_MARGIN, WINDOW_WIDTH - TRACK_MARGIN + TRACK_MARGIN/1.1, WINDOW_HEIGHT - TRACK_MARGIN);
+
+    SelectObject(hdc, oldBrush);
+    DeleteObject(brush);
+
+    // Rysowanie białych półkoli na lewym i prawym boku wewnetrznego prostokota
+    brush = CreateSolidBrush(RGB(255, 255, 255));
+    oldBrush = SelectObject(hdc, brush);
+
+    // Tworzenie pędzla bez konturów
+    HPEN hNullPen = CreatePen(PS_NULL, 0, RGB(255, 255, 255));
+    HPEN hOldPen = SelectObject(hdc, hNullPen);
+
+    Ellipse(hdc, TRACK_MARGIN - TRACK_MARGIN / 1.5 + (INNER_MARGIN - TRACK_MARGIN), INNER_MARGIN, TRACK_MARGIN + TRACK_MARGIN / 1.5 + (INNER_MARGIN - TRACK_MARGIN), WINDOW_HEIGHT - INNER_MARGIN);
+    Ellipse(hdc, WINDOW_WIDTH - TRACK_MARGIN - TRACK_MARGIN / 1.5 - (INNER_MARGIN - TRACK_MARGIN), INNER_MARGIN, WINDOW_WIDTH - TRACK_MARGIN + TRACK_MARGIN / 1.5 - (INNER_MARGIN - TRACK_MARGIN), WINDOW_HEIGHT - INNER_MARGIN);
+
     SelectObject(hdc, oldBrush);
     DeleteObject(brush);
 }
@@ -43,7 +76,7 @@ bool IsWhiteColor(COLORREF color) {
     return GetRValue(color) == 255 && GetGValue(color) == 255 && GetBValue(color) == 255;
 }
 
-//funkcja sprawdzajaca odpowiedni piksel w zale�no�ci od parametru direction
+//funkcja sprawdzajaca odpowiedni piksel w zale¿noœci od parametru direction
 //     1 
 //   #####
 // 2 ##### 4
@@ -70,12 +103,12 @@ bool CanMove(HWND hwnd, int x, int y, int direction) {
     }
     ReleaseDC(hwnd, hdcWindow);
 
-    return !IsWhiteColor(color); //gracz nie mo�e wjecha� na bia�e pole
+    return !IsWhiteColor(color); //gracz nie mo¿e wjechaæ na bia³e pole
 }
 
 void UpdateSquarePosition(HWND hwnd, int* x, int* y, const bool keys[]) {
     static int speed = PLAYER_SPEED;
-    int newX, newY;//nowe warto�ci wsp�rz�dnych po przesuni�ciu o warto�� speed
+    int newX, newY;//nowe wartoœci wspó³rzêdnych po przesuniêciu o wartoœæ speed
 
     if (keys['W']) {
         newY = *y - speed;
