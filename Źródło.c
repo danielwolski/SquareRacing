@@ -5,7 +5,7 @@
 #define PLAYER_SQUARE_SIZE 20
 #define PLAYER_SPEED 5
 
-#define WINDOW_WIDTH 1600
+#define WINDOW_WIDTH 1400
 #define WINDOW_HEIGHT 700
 
 #define TRACK_MARGIN 130
@@ -41,9 +41,9 @@ void DrawTrack(HDC hdc) {
     //    int right,  // współrzędna x prawego dolnego rogu prostokąta otaczającego elipsę
     //    int bottom  // współrzędna y prawego dolnego rogu prostokąta otaczającego elipsę
     //);
-    Ellipse(hdc, TRACK_MARGIN - TRACK_MARGIN/1.1, TRACK_MARGIN, TRACK_MARGIN + TRACK_MARGIN/1.1, WINDOW_HEIGHT - TRACK_MARGIN);
+    Ellipse(hdc, TRACK_MARGIN - TRACK_MARGIN / 1.1, TRACK_MARGIN, TRACK_MARGIN + TRACK_MARGIN / 1.1, WINDOW_HEIGHT - TRACK_MARGIN);
     // Prawa część zaokrąglona
-    Ellipse(hdc, WINDOW_WIDTH - TRACK_MARGIN - TRACK_MARGIN/1.1, TRACK_MARGIN, WINDOW_WIDTH - TRACK_MARGIN + TRACK_MARGIN/1.1, WINDOW_HEIGHT - TRACK_MARGIN);
+    Ellipse(hdc, WINDOW_WIDTH - TRACK_MARGIN - TRACK_MARGIN / 1.1, TRACK_MARGIN, WINDOW_WIDTH - TRACK_MARGIN + TRACK_MARGIN / 1.1, WINDOW_HEIGHT - TRACK_MARGIN);
 
     SelectObject(hdc, oldBrush);
     DeleteObject(brush);
@@ -76,27 +76,39 @@ bool IsWhiteColor(COLORREF color) {
     return GetRValue(color) == 255 && GetGValue(color) == 255 && GetBValue(color) == 255;
 }
 
-//funkcja sprawdzajaca odpowiedni piksel w zale¿noœci od parametru direction
-//     1 
-//   #####
-// 2 ##### 4
-//   #####
-//     3
+//funkcja sprawdzajaca odpowiedni piksel w zaleznosci od parametru direction
+//    8   1 
+//  7 ##### 2
+//    ##### 
+//  6 ##### 3
+//    5   4
 bool CanMove(HWND hwnd, int x, int y, int direction) {
     HDC hdcWindow = GetDC(hwnd);
     COLORREF color = RGB(255, 255, 255); //domyslnie bialy
     switch (direction) {
-    case 1: //sprawdzenie piksela nad gorna sciana gracza
-        color = GetPixel(hdcWindow, x + PLAYER_SQUARE_SIZE / 2, y - 1);
+    case 1:
+        color = GetPixel(hdcWindow, x + PLAYER_SQUARE_SIZE, y - 1);
         break;
-    case 2: //sprawdzenie piksela przed lewa sciana gracza
-        color = GetPixel(hdcWindow, x - 1, y + PLAYER_SQUARE_SIZE / 2);
+    case 2:
+        color = GetPixel(hdcWindow, x + PLAYER_SQUARE_SIZE + 1, y);
         break;
-    case 3: //sprawdzenie piksela pod dolna sciana gracza
-        color = GetPixel(hdcWindow, x + PLAYER_SQUARE_SIZE / 2, y + PLAYER_SQUARE_SIZE + 1);
+    case 3: 
+        color = GetPixel(hdcWindow, x + PLAYER_SQUARE_SIZE + 1, y + PLAYER_SQUARE_SIZE);
         break;
-    case 4: //sprawdzenie piksela za prawa sciana gracza
-        color = GetPixel(hdcWindow, x + PLAYER_SQUARE_SIZE + 1, y + PLAYER_SQUARE_SIZE / 2);
+    case 4:
+        color = GetPixel(hdcWindow, x + PLAYER_SQUARE_SIZE, y + PLAYER_SQUARE_SIZE);
+        break;
+    case 5:
+        color = GetPixel(hdcWindow, x, y + PLAYER_SQUARE_SIZE + 1);
+        break;
+    case 6:
+        color = GetPixel(hdcWindow, x - 1, y + PLAYER_SQUARE_SIZE);
+        break;
+    case 7:
+        color = GetPixel(hdcWindow, x - 1, y);
+        break;
+    case 8:
+        color = GetPixel(hdcWindow, x, y - 1);
         break;
     default:
         break;
@@ -112,22 +124,22 @@ void UpdateSquarePosition(HWND hwnd, int* x, int* y, const bool keys[]) {
 
     if (keys['W']) {
         newY = *y - speed;
-        if (CanMove(hwnd, *x, newY, 1))
+        if (CanMove(hwnd, *x, newY, 1) && CanMove(hwnd, *x, newY, 8))
             *y = newY;
     }
     if (keys['S']) {
         newY = *y + speed;
-        if (CanMove(hwnd, *x, newY, 3))
+        if (CanMove(hwnd, *x, newY, 4) && CanMove(hwnd, *x, newY, 5))
             *y = newY;
     }
     if (keys['A']) {
         newX = *x - speed;
-        if (CanMove(hwnd, newX, *y, 2))
+        if (CanMove(hwnd, newX, *y, 6) && CanMove(hwnd, newX, *y, 7))
             *x = newX;
     }
     if (keys['D']) {
         newX = *x + speed;
-        if (CanMove(hwnd, newX, *y, 4))
+        if (CanMove(hwnd, newX, *y, 2) && CanMove(hwnd, newX, *y, 3))
             *x = newX;
     }
 }
