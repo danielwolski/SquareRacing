@@ -43,7 +43,7 @@ void DrawTrack(HDC hdc) {
     //);
     Ellipse(hdc, TRACK_MARGIN - TRACK_MARGIN / 1.1, TRACK_MARGIN, TRACK_MARGIN + TRACK_MARGIN / 1.1, WINDOW_HEIGHT - TRACK_MARGIN);
     // Prawa część zaokrąglona
-    Ellipse(hdc, WINDOW_WIDTH - TRACK_MARGIN - TRACK_MARGIN / 1.1, TRACK_MARGIN, WINDOW_WIDTH - TRACK_MARGIN + TRACK_MARGIN / 1.1, WINDOW_HEIGHT - TRACK_MARGIN);
+    Ellipse(hdc, WINDOW_WIDTH - TRACK_MARGIN - TRACK_MARGIN / 1.1, TRACK_MARGIN, WINDOW_WIDTH - TRACK_MARGIN + TRACK_MARGIN / 1.15, WINDOW_HEIGHT - TRACK_MARGIN);
 
     SelectObject(hdc, oldBrush);
     DeleteObject(brush);
@@ -92,7 +92,7 @@ bool CanMove(HWND hwnd, int x, int y, int direction) {
     case 2:
         color = GetPixel(hdcWindow, x + PLAYER_SQUARE_SIZE + 1, y);
         break;
-    case 3: 
+    case 3:
         color = GetPixel(hdcWindow, x + PLAYER_SQUARE_SIZE + 1, y + PLAYER_SQUARE_SIZE);
         break;
     case 4:
