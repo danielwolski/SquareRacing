@@ -2,6 +2,9 @@
 Simple racing game using SDL
 
 
+
+
+
 //install sdl
 
 sudo apt-get install libsdl2-dev
