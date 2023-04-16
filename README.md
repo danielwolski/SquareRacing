@@ -14,5 +14,7 @@ sudo apt-get install libsdl2-image-dev
 
 ## Run
 
-gcc -o racing_game main.c `sdl2-config --cflags --libs` -lSDL2_image
+
+gcc -o racing_game main.c \`sdl2-config --cflags --libs\` -lSDL2_image
+
 ./racing_game
