@@ -5,7 +5,7 @@ This program is a simple racing game written in C, using the SDL2 and SDL2_image
 
 
 __________________________
-## SDL2 installation
+## SDL2 Linux installation
 
 sudo apt-get install libsdl2-dev
 
