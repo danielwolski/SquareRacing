@@ -17,7 +17,7 @@ typedef struct {
     Uint8 b;
 } Color;
 
-const Color CORRIDOR_IN_COLOR = {255, 0, 0};    // red
+const Color CORRIDOR_IN_COLOR = {0, 0, 255};    // tutaj powinno byc 255,0,0 ale program traktuje czerwony jako 0,0,255(????) do naprawienia - robi tak tylko jak sprawdza wartosc piksela, maluje na czerwono juz normalnie
 const Color CORRIDOR_OUT_COLOR = {0, 255, 0};  // green
 
 const Color PITSTOP_IN_COLOR = {255, 255, 0};   // yellow
@@ -25,6 +25,7 @@ const Color PITSTOP_OUT_COLOR = {0, 255, 255}; // turkusowy
 
 const Color DONT_ENTER_COLOR = {255, 255, 255}; // white
 
+int IS_CORRIDOR_LOCKED = 0;
 
 SDL_Texture* loadTexture(const char* filename, SDL_Renderer* renderer) {
     SDL_Surface* surface = IMG_Load(filename);
@@ -46,6 +47,31 @@ void DrawPlayer(SDL_Renderer *renderer, int x, int y) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     SDL_Rect player = {x, y, PLAYER_SQUARE_SIZE, PLAYER_SQUARE_SIZE};
     SDL_RenderFillRect(renderer, &player);
+}
+
+
+void DrawCorridorLockStatusCircle(SDL_Renderer *renderer) {
+    int circleRadius = 20;
+    int circleX = WINDOW_WIDTH - 50;
+    int circleY = 50;
+
+    // Wybierz kolor na podstawie wartoœci IS_CORRIDOR_LOCKED
+    if (IS_CORRIDOR_LOCKED == 0) {
+        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    } else {
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    }
+
+    // Rysuj okr¹g
+    for (int w = 0; w < circleRadius * 2; w++) {
+        for (int h = 0; h < circleRadius * 2; h++) {
+            int dx = circleRadius - w;
+            int dy = circleRadius - h;
+            if ((dx * dx + dy * dy) <= (circleRadius * circleRadius)) {
+                SDL_RenderDrawPoint(renderer, circleX + dx, circleY + dy);
+            }
+        }
+    }
 }
 
 bool IsColor(Uint32 pixel, SDL_PixelFormat *format, Color color) {
@@ -135,11 +161,37 @@ void UpdateSquarePosition(int *x, int *y, const bool keys[], SDL_Surface *trackS
     if (keys[SDL_SCANCODE_D]) {
         newX += speed;
     }
+    
+    //testowanie - jaki kolor jest na mapie?
+    Uint32 testColor = GetPixel(trackSurface, newX - 1, *y);
+    Uint8 r, g, b;
+    SDL_GetRGB(testColor, trackSurface->format, &r, &g, &b);
+    printf("Color at newX-1, y: (%u, %u, %u)\n", r, g, b);
 
+    testColor = GetPixel(trackSurface, newX - 1, *y + PLAYER_SQUARE_SIZE - 1);
+    SDL_GetRGB(testColor, trackSurface->format, &r, &g, &b);
+    printf("Color at newX-1, y+player_square_size-1: (%u, %u, %u)\n", r, g, b);
+
+
+    // SprawdŸ, czy gracz napotka³ czerwony kolor podczas jazdy w lewo
+    if (keys[SDL_SCANCODE_A]) {
+        Uint32 colorTop = GetPixel(trackSurface, newX - 1, *y);
+        printf("Raw colorTop: %u\n", colorTop);
+        Uint8 r, g, b;
+        SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
+        printf("RGB: (%d, %d, %d)\n", r, g, b);
+        if (IsColor(colorTop, trackSurface->format, CORRIDOR_IN_COLOR)) {
+            IS_CORRIDOR_LOCKED = 1;
+        }
+    }
+
+    
     if (CanMove(trackSurface, newX, *y, 7) && CanMove(trackSurface, newX, *y, 6) &&
         CanMove(trackSurface, newX, *y, 3) && CanMove(trackSurface, newX, *y, 2)) {
         *x = newX;
     }
+    
+   
 }
 
 
@@ -209,6 +261,8 @@ SDL_DestroyTexture(target);
         SDL_RenderCopy(renderer, trackTexture, NULL, NULL);  // Assumes track texture size matches the window size
 
         DrawPlayer(renderer, x, y);
+        
+        DrawCorridorLockStatusCircle(renderer);
 
         SDL_RenderPresent(renderer);
         
@@ -223,4 +277,3 @@ SDL_DestroyTexture(target);
 
   return 0;
 }
-
