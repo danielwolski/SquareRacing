@@ -11,6 +11,21 @@
 #define TRACK_MARGIN 130
 #define INNER_MARGIN 250
 
+typedef struct {
+    Uint8 r;
+    Uint8 g;
+    Uint8 b;
+} Color;
+
+const Color CORRIDOR_IN_COLOR = {255, 0, 0};    // red
+const Color CORRIDOR_OUT_COLOR = {0, 255, 0};  // green
+
+const Color PITSTOP_IN_COLOR = {255, 255, 0};   // yellow
+const Color PITSTOP_OUT_COLOR = {0, 255, 255}; // turkusowy
+
+const Color DONT_ENTER_COLOR = {255, 255, 255}; // white
+
+
 SDL_Texture* loadTexture(const char* filename, SDL_Renderer* renderer) {
     SDL_Surface* surface = IMG_Load(filename);
     if (!surface) {
@@ -33,10 +48,10 @@ void DrawPlayer(SDL_Renderer *renderer, int x, int y) {
     SDL_RenderFillRect(renderer, &player);
 }
 
-bool IsWhiteColor(Uint32 pixel, SDL_PixelFormat *format) {
+bool IsColor(Uint32 pixel, SDL_PixelFormat *format, Color color) {
     Uint8 r, g, b;
     SDL_GetRGB(pixel, format, &r, &g, &b);
-    return r == 255 && g == 255 && b == 255;
+    return r == color.r && g == color.g && b == color.b;
 }
 
 Uint32 GetPixel(SDL_Surface *surface, int x, int y) {
@@ -93,7 +108,7 @@ bool CanMove(SDL_Surface *surface, int x, int y, int direction) {
         break;
     }
 
-    return !IsWhiteColor(color, surface->format);
+    return !IsColor(color, surface->format, DONT_ENTER_COLOR);
 }
 
 void UpdateSquarePosition(int *x, int *y, const bool keys[], SDL_Surface *trackSurface) {
