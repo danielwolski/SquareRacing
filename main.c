@@ -1,9 +1,13 @@
 #include <SDL.h>
 #include <SDL2/SDL_image.h>
 #include <stdbool.h>
+#include <time.h>
 
 #define PLAYER_SQUARE_SIZE 20
 #define PLAYER_SPEED 5
+#define PLAYER_SPEED_NITRO 8
+
+#define NITRO_LAST_TIME 3
 
 #define WINDOW_WIDTH 1400
 #define WINDOW_HEIGHT 700
@@ -17,15 +21,19 @@ typedef struct {
     Uint8 b;
 } Color;
 
-const Color CORRIDOR_IN_COLOR = {0, 0, 255};    // tutaj powinno byc 255,0,0 ale program traktuje czerwony jako 0,0,255(????) do naprawienia - robi tak tylko jak sprawdza wartosc piksela, maluje na czerwono juz normalnie
+//kolory sa odwrocone zamiast RGB jest BGR
+const Color CORRIDOR_IN_COLOR = {0, 0, 255};    // red
 const Color CORRIDOR_OUT_COLOR = {0, 255, 0};  // green
 
-const Color PITSTOP_IN_COLOR = {255, 255, 0};   // yellow
-const Color PITSTOP_OUT_COLOR = {0, 255, 255}; // turkusowy
+const Color PITSTOP_IN_COLOR = {0, 255, 255};   // yellow
+const Color PITSTOP_OUT_COLOR = {255, 200, 0}; // turkusowy
 
 const Color DONT_ENTER_COLOR = {255, 255, 255}; // white
 
 int IS_CORRIDOR_LOCKED = 0;
+int IS_PITSTOP_LOCKED = 0;
+
+time_t speed_boost_start = 0;
 
 SDL_Texture* loadTexture(const char* filename, SDL_Renderer* renderer) {
     SDL_Surface* surface = IMG_Load(filename);
@@ -50,19 +58,19 @@ void DrawPlayer(SDL_Renderer *renderer, int x, int y) {
 }
 
 
-void DrawCorridorLockStatusCircle(SDL_Renderer *renderer) {
+void DrawLockStatusCircle(SDL_Renderer *renderer, int lock_status, int offsetY) {
     int circleRadius = 20;
-    int circleX = WINDOW_WIDTH - 50;
-    int circleY = 50;
+    int circleX = WINDOW_WIDTH - 70;
+    int circleY = 50 + offsetY;
 
-    // Wybierz kolor na podstawie wartoœci IS_CORRIDOR_LOCKED
-    if (IS_CORRIDOR_LOCKED == 0) {
+    // Wybierz kolor na podstawie wartoÅ›ci lock_status
+    if (lock_status == 0) {
         SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
     } else {
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     }
 
-    // Rysuj okr¹g
+    // Rysuj okrÄ…g
     for (int w = 0; w < circleRadius * 2; w++) {
         for (int h = 0; h < circleRadius * 2; h++) {
             int dx = circleRadius - w;
@@ -140,12 +148,42 @@ bool CanMove(SDL_Surface *surface, int x, int y, int direction) {
 void UpdateSquarePosition(int *x, int *y, const bool keys[], SDL_Surface *trackSurface) {
     static int speed = PLAYER_SPEED;
     int newX = *x, newY = *y;
+    
+    // Check whether the speed has returned to normal after the slow down
+    if (speed_boost_start != 0 && time(NULL) - speed_boost_start >= 2) {
+        speed = PLAYER_SPEED;
+        speed_boost_start = 0;
+    }
+
+    // Check whether the speed increase has ended
+    static time_t speed_increase_start = 0;
+    if (speed_increase_start != 0 && time(NULL) - speed_increase_start >= NITRO_LAST_TIME) {
+        speed = PLAYER_SPEED;
+        speed_increase_start = 0;
+    }
 
     if (keys[SDL_SCANCODE_W]) {
         newY -= speed;
     }
     if (keys[SDL_SCANCODE_S]) {
         newY += speed;
+    }
+    
+    // Check whether player un/locks pitstop
+    if (keys[SDL_SCANCODE_W]) {
+        Uint32 colorTop = GetPixel(trackSurface, *x, newY-1);
+        printf("Raw colorTop: %u\n", colorTop);
+        Uint8 r, g, b;
+        SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
+        printf("RGB: (%d, %d, %d)\n", r, g, b);
+        
+        if (IsColor(colorTop, trackSurface->format, PITSTOP_IN_COLOR)){
+            IS_PITSTOP_LOCKED = 1;
+            speed = PLAYER_SPEED_NITRO;
+            speed_boost_start = time(NULL);
+            }
+        else if (IsColor(colorTop, trackSurface->format, PITSTOP_OUT_COLOR))
+            IS_PITSTOP_LOCKED = 0;
     }
 
     if (CanMove(trackSurface, newX, newY, 1) && CanMove(trackSurface, newX, newY, 8) &&
@@ -161,28 +199,20 @@ void UpdateSquarePosition(int *x, int *y, const bool keys[], SDL_Surface *trackS
     if (keys[SDL_SCANCODE_D]) {
         newX += speed;
     }
-    
-    //testowanie - jaki kolor jest na mapie?
-    Uint32 testColor = GetPixel(trackSurface, newX - 1, *y);
-    Uint8 r, g, b;
-    SDL_GetRGB(testColor, trackSurface->format, &r, &g, &b);
-    printf("Color at newX-1, y: (%u, %u, %u)\n", r, g, b);
-
-    testColor = GetPixel(trackSurface, newX - 1, *y + PLAYER_SQUARE_SIZE - 1);
-    SDL_GetRGB(testColor, trackSurface->format, &r, &g, &b);
-    printf("Color at newX-1, y+player_square_size-1: (%u, %u, %u)\n", r, g, b);
 
 
-    // SprawdŸ, czy gracz napotka³ czerwony kolor podczas jazdy w lewo
+    // Check whether player un/locks the corridor
     if (keys[SDL_SCANCODE_A]) {
         Uint32 colorTop = GetPixel(trackSurface, newX - 1, *y);
-        printf("Raw colorTop: %u\n", colorTop);
+        printf("Raw colorLeft: %u\n", colorTop);
         Uint8 r, g, b;
         SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
         printf("RGB: (%d, %d, %d)\n", r, g, b);
-        if (IsColor(colorTop, trackSurface->format, CORRIDOR_IN_COLOR)) {
+        
+        if (IsColor(colorTop, trackSurface->format, CORRIDOR_IN_COLOR))
             IS_CORRIDOR_LOCKED = 1;
-        }
+        else if (IsColor(colorTop, trackSurface->format, CORRIDOR_OUT_COLOR))
+            IS_CORRIDOR_LOCKED = 0;
     }
 
     
@@ -226,11 +256,11 @@ int main(int argc, char *argv[]) {
 
 
     SDL_Texture* target = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_TARGET, WINDOW_WIDTH, WINDOW_HEIGHT);
-SDL_SetRenderTarget(renderer, target);
-SDL_RenderCopy(renderer, trackTexture, NULL, NULL);
-SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_RGBA32, trackSurface->pixels, trackSurface->pitch);
-SDL_SetRenderTarget(renderer, NULL);
-SDL_DestroyTexture(target);
+    SDL_SetRenderTarget(renderer, target);
+    SDL_RenderCopy(renderer, trackTexture, NULL, NULL);
+    SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_RGBA32, trackSurface->pixels, trackSurface->pitch);
+    SDL_SetRenderTarget(renderer, NULL);
+    SDL_DestroyTexture(target);
 
 
 
@@ -262,7 +292,9 @@ SDL_DestroyTexture(target);
 
         DrawPlayer(renderer, x, y);
         
-        DrawCorridorLockStatusCircle(renderer);
+        DrawLockStatusCircle(renderer, IS_CORRIDOR_LOCKED, -33);
+        DrawLockStatusCircle(renderer, IS_PITSTOP_LOCKED, 20);
+
 
         SDL_RenderPresent(renderer);
         
