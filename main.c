@@ -4,10 +4,11 @@
 #include <time.h>
 
 #define PLAYER_SQUARE_SIZE 20
-#define PLAYER_SPEED 5
-#define PLAYER_SPEED_NITRO 8
+#define PLAYER_SPEED 3
+#define PLAYER_SPEED_LOADING_NITRO 1
+#define PLAYER_SPEED_NITRO 6
 
-#define NITRO_LAST_TIME 3
+#define NITRO_LAST_TIME 4
 
 #define WINDOW_WIDTH 1400
 #define WINDOW_HEIGHT 700
@@ -33,7 +34,7 @@ const Color DONT_ENTER_COLOR = {255, 255, 255}; // white
 int IS_CORRIDOR_LOCKED = 0;
 int IS_PITSTOP_LOCKED = 0;
 
-time_t speed_boost_start = 0;
+time_t speed_increase_start = 0;
 
 SDL_Texture* loadTexture(const char* filename, SDL_Renderer* renderer) {
     SDL_Surface* surface = IMG_Load(filename);
@@ -148,15 +149,8 @@ bool CanMove(SDL_Surface *surface, int x, int y, int direction) {
 void UpdateSquarePosition(int *x, int *y, const bool keys[], SDL_Surface *trackSurface) {
     static int speed = PLAYER_SPEED;
     int newX = *x, newY = *y;
-    
-    // Check whether the speed has returned to normal after the slow down
-    if (speed_boost_start != 0 && time(NULL) - speed_boost_start >= 2) {
-        speed = PLAYER_SPEED;
-        speed_boost_start = 0;
-    }
 
     // Check whether the speed increase has ended
-    static time_t speed_increase_start = 0;
     if (speed_increase_start != 0 && time(NULL) - speed_increase_start >= NITRO_LAST_TIME) {
         speed = PLAYER_SPEED;
         speed_increase_start = 0;
@@ -179,11 +173,13 @@ void UpdateSquarePosition(int *x, int *y, const bool keys[], SDL_Surface *trackS
         
         if (IsColor(colorTop, trackSurface->format, PITSTOP_IN_COLOR)){
             IS_PITSTOP_LOCKED = 1;
-            speed = PLAYER_SPEED_NITRO;
-            speed_boost_start = time(NULL);
+            speed = PLAYER_SPEED_LOADING_NITRO;
             }
-        else if (IsColor(colorTop, trackSurface->format, PITSTOP_OUT_COLOR))
+        else if (IsColor(colorTop, trackSurface->format, PITSTOP_OUT_COLOR)){
             IS_PITSTOP_LOCKED = 0;
+            speed = PLAYER_SPEED_NITRO;
+            speed_increase_start = time(NULL);
+            }
     }
 
     if (CanMove(trackSurface, newX, newY, 1) && CanMove(trackSurface, newX, newY, 8) &&
