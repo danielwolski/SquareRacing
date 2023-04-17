@@ -382,9 +382,9 @@ int main(int argc, char *argv[]) {
 
         DrawPlayer(renderer, x, y);
         
-            for (int i = 0; i < NUM_TRACK_POINTS; i++) {
-            DrawPoint(renderer, track_points[i]);
-            }
+           // for (int i = 0; i < NUM_TRACK_POINTS; i++) {
+           // DrawPoint(renderer, track_points[i]);
+           // }
         
         DrawLockStatusCircle(renderer, IS_CORRIDOR_LOCKED, -33);
         DrawLockStatusCircle(renderer, IS_PITSTOP_LOCKED, 20);
