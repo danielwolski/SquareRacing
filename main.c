@@ -4,9 +4,9 @@
 #include <time.h>
 
 #define PLAYER_SQUARE_SIZE 20
-#define PLAYER_SPEED 3
+#define PLAYER_SPEED 5
 #define PLAYER_SPEED_LOADING_NITRO 1
-#define PLAYER_SPEED_NITRO 6
+#define PLAYER_SPEED_NITRO 8
 
 #define NITRO_LAST_TIME 4
 
@@ -16,7 +16,12 @@
 #define TRACK_MARGIN 130
 #define INNER_MARGIN 250
 
-#define NUM_TRACK_POINTS 10
+#define START_X_POS 130
+#define START_Y_POS 170
+
+#define CHECKING_MARGIN 3
+
+#define NUM_TRACK_POINTS 9
 
 typedef struct {
     Uint8 r;
@@ -29,7 +34,19 @@ typedef struct {
     int y;
 } Point;
 
-Point track_points[10];
+SDL_Point track_points[NUM_TRACK_POINTS] = {
+        {181, 149},
+        {300, 150},
+        {1000, 150},
+        {1200, 200},
+        {1200, 500},
+        {1000, 540},
+        {510, 540},
+        {75, 485},
+        {75, 210},
+    };
+    
+
 int directionX = 0, directionY = 0;
 int current_track_point = 0;
 
@@ -72,7 +89,7 @@ void DrawPlayer(SDL_Renderer *renderer, int x, int y) {
 
 
 void DrawLockStatusCircle(SDL_Renderer *renderer, int lock_status, int offsetY) {
-    int circleRadius = 20;
+    int circleRadius = 16;
     int circleX = WINDOW_WIDTH - 70;
     int circleY = 50 + offsetY;
 
@@ -131,16 +148,43 @@ Uint32 GetPixel(SDL_Surface *surface, int x, int y) {
     }
 }
 
-void UpdateDirection(int x, int y) {
+/*void UpdateDirection(int x, int y) {
     if (current_track_point + 1 >= sizeof(track_points) / sizeof(track_points[0])) {
-        return;
+        current_track_point = 0;
     }
 
-    Point next = track_points[current_track_point + 1];
+    Point next;
+    next.x = track_points[current_track_point].x;
+    next.y = track_points[current_track_point].y;
 
     directionX = next.x > x ? 1 : (next.x < x ? -1 : 0);
     directionY = next.y > y ? 1 : (next.y < y ? -1 : 0);
+}*/
+
+void UpdateDirection(int x, int y) {
+    if (current_track_point + 1 >= sizeof(track_points) / sizeof(track_points[0])) {
+        current_track_point = 0;
+    }
+    
+    Point next;
+    next.x = track_points[current_track_point].x;
+    next.y = track_points[current_track_point].y;
+    int diffX = next.x - x;
+    int diffY = next.y - y;
+
+    if (abs(diffX) <= CHECKING_MARGIN) {
+        directionX = 0;
+    } else {
+        directionX = diffX > 0 ? 1 : -1;
+    }
+
+    if (abs(diffY) <= CHECKING_MARGIN) {
+        directionY = 0;
+    } else {
+        directionY = diffY > 0 ? 1 : -1;
+    }
 }
+
 
 
 
@@ -179,16 +223,25 @@ bool CanMove(SDL_Surface *surface, int x, int y, int direction) {
     return !IsColor(color, surface->format, DONT_ENTER_COLOR);
 }
 
-void UpdateSquarePosition(int *x, int *y, const bool keys[], SDL_Surface *trackSurface, int directionX, int directionY) {
+void UpdateSquarePosition(int *x, int *y, const bool keys[], SDL_Surface *trackSurface) {
     static int speed = PLAYER_SPEED;
     int newX = *x, newY = *y;
     
-    // Sprawdź, czy gracz dotarł do następnego punktu ścieżki
-    Point next_point = track_points[current_track_point + 1];
-    if (abs(*x - next_point.x) <= PLAYER_SPEED && abs(*y - next_point.y) <= PLAYER_SPEED) {
+    // Sprawdź, czy gracz dotarł do obecnego punktu ścieżki
+    Point current_point;
+    current_point.x = track_points[current_track_point].x;
+    current_point.y = track_points[current_track_point].y;
+
+    
+    printf("x_player: %d y_player: %d\n",*x,*y);
+    printf("x: %d y: %d\n",current_point.x,current_point.y);
+    
+    if (abs(*x - current_point.x) <= CHECKING_MARGIN && abs(*y - current_point.y) <= CHECKING_MARGIN) {
+        printf("SUCCESS\n");
         current_track_point++;
-        UpdateDirection(*x,*y);
     }
+    
+    UpdateDirection(*x,*y);
 
     // Check whether the speed increase has ended
     if (speed_increase_start != 0 && time(NULL) - speed_increase_start >= NITRO_LAST_TIME) {
@@ -263,20 +316,6 @@ void UpdateSquarePosition(int *x, int *y, const bool keys[], SDL_Surface *trackS
 
 int main(int argc, char *argv[]) {
 
-    SDL_Point track_points[NUM_TRACK_POINTS] = {
-        {150, 150},
-        {300, 150},
-        {1000, 150},
-        {1200, 200},
-        {1200, 500},
-        {1000, 540},
-        {510, 540},
-        {75, 485},
-        {75, 210},
-        {135, 180}
-    };
-    
-
     SDL_Surface *trackSurface = NULL;
 
     SDL_Init(SDL_INIT_VIDEO);
@@ -290,8 +329,10 @@ int main(int argc, char *argv[]) {
         // Handle error
     }
 
-    int x = 150;
-    int y = 150;
+    int x = START_X_POS;
+    int y = START_Y_POS;
+    UpdateDirection(x, y);
+
 
     bool keys[SDL_NUM_SCANCODES] = {false};
     bool running = true;
@@ -330,7 +371,9 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        UpdateSquarePosition(&x, &y, keys, trackSurface, directionX, directionY);
+        UpdateSquarePosition(&x, &y, keys, trackSurface);
+        printf("current point %d\n", current_track_point);
+
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
