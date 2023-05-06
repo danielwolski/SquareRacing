@@ -13,10 +13,6 @@ SDL_Point track_points[NUM_TRACK_POINTS] = {
         {75, 210},
 };
 
-void track_init() {
-    // Initialize track_points or any other track related setup
-}
-
 Uint32 GetPixel(SDL_Surface* surface, int x, int y) {
     int bpp = surface->format->BytesPerPixel;
     Uint8* p = (Uint8*)surface->pixels + y * surface->pitch + x * bpp;

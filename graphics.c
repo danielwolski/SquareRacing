@@ -28,7 +28,7 @@ void DrawLockStatusCircle(SDL_Renderer* renderer, int lock_status, int offsetY) 
     int circleX = WINDOW_WIDTH - 70;
     int circleY = 50 + offsetY;
 
-    // Wybierz kolor na podstawie wartoœci lock_status
+    // Wybierz kolor na podstawie wartoÂœci lock_status
     if (lock_status == 0) {
         SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
     }
@@ -36,7 +36,7 @@ void DrawLockStatusCircle(SDL_Renderer* renderer, int lock_status, int offsetY) 
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     }
 
-    // Rysuj okr¹g
+    // Rysuj okrÂ¹g
     for (int w = 0; w < circleRadius * 2; w++) {
         for (int h = 0; h < circleRadius * 2; h++) {
             int dx = circleRadius - w;
@@ -46,6 +46,14 @@ void DrawLockStatusCircle(SDL_Renderer* renderer, int lock_status, int offsetY) 
             }
         }
     }
+}
+
+void DrawPoint(SDL_Renderer* renderer, SDL_Point p) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+    SDL_RenderDrawPoint(renderer, p.x, p.y);
+    SDL_RenderDrawPoint(renderer, p.x - 1, p.y);
+    SDL_RenderDrawPoint(renderer, p.x, p.y - 1);
+    SDL_RenderDrawPoint(renderer, p.x - 1, p.y - 1);
 }
 
 bool IsColor(Uint32 pixel, SDL_PixelFormat* format, Color color) {

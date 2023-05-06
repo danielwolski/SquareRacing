@@ -3,9 +3,6 @@
 #include "track.h"
 #include "constants.h"
 
-extern int is_corridor_locked;
-extern int is_pitstop_locked;
-
 Player* player_create(int x, int y) {
     Player* player = (Player*)malloc(sizeof(Player));
     player->x = x;
@@ -13,7 +10,6 @@ Player* player_create(int x, int y) {
     player->speed = PLAYER_SPEED;
     player->current_track_point = 0;
     player->speed_increase_start = 0;
-    player_update_direction(player);
     return player;
 }
 
@@ -41,20 +37,58 @@ void player_update_direction(Player* player) {
     else {
         player->directionY = diffY > 0 ? 1 : -1;
     }
-
-    player->current_track_point++;
 }
 
 
 void player_update_position(Player* player, SDL_Surface* trackSurface) {
+    static int speed = PLAYER_SPEED;
     int newX = player->x, newY = player->y;
-    int speed = player->speed;
+
+    // Check if the player reached the current track point
+    Point current_point;
+    current_point.x = track_points[player->current_track_point].x;
+    current_point.y = track_points[player->current_track_point].y;
+
+    printf("x_player: %d y_player: %d\n", player->x, player->y);
+    printf("x: %d y: %d\n", current_point.x, current_point.y);
+
+    if (abs(player->x - current_point.x) <= CHECKING_MARGIN && abs(player->y - current_point.y) <= CHECKING_MARGIN) {
+        printf("SUCCESS\n");
+        player->current_track_point++;
+    }
+
+    player_update_direction(player);
+
+    // Check whether the speed increase has ended
+    if (player->speed_increase_start != 0 && time(NULL) - player->speed_increase_start >= NITRO_LAST_TIME) {
+        player->speed = PLAYER_SPEED;
+        player->speed_increase_start = 0;
+    }
 
     if (player->directionY == -1) {
-        newY -= speed;
+        newY -= player->speed;
     }
     if (player->directionY == 1) {
-        newY += speed;
+        newY += player->speed;
+    }
+
+    // Check whether player un/locks pitstop
+    if (player->directionY == -1) {
+        Uint32 colorTop = GetPixel(trackSurface, player->x, newY - 1);
+        printf("Raw colorTop: %u\n", colorTop);
+        Uint8 r, g, b;
+        SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
+        printf("RGB: (%d, %d, %d)\n", r, g, b);
+
+        if (IsColor(colorTop, trackSurface->format, PITSTOP_IN_COLOR)) {
+            is_pitstop_locked = 1;
+            player->speed = PLAYER_SPEED_LOADING_NITRO;
+        }
+        else if (IsColor(colorTop, trackSurface->format, PITSTOP_OUT_COLOR)) {
+            is_pitstop_locked = 0;
+            player->speed = PLAYER_SPEED_NITRO;
+            player->speed_increase_start = time(NULL);
+        }
     }
 
     if (CanMove(trackSurface, newX, newY, 1) && CanMove(trackSurface, newX, newY, 8) &&
@@ -65,46 +99,34 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
     newX = player->x;
 
     if (player->directionX == -1) {
-        newX -= speed;
+        newX -= player->speed;
     }
     if (player->directionX == 1) {
-        newX += speed;
+        newX += player->speed;
+    }
+    
+    // Check whether player un/locks the corridor
+    if (player->directionX == -1) {
+        Uint32 colorTop = GetPixel(trackSurface, newX - 1, player->y);
+        printf("Raw colorLeft: %u\n", colorTop);
+        Uint8 r, g, b;
+        SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
+        printf("RGB: (%d, %d, %d)\n", r, g, b);
+
+        if (IsColor(colorTop, trackSurface->format, CORRIDOR_IN_COLOR))
+            is_corridor_locked = 1;
+        else if (IsColor(colorTop, trackSurface->format, CORRIDOR_OUT_COLOR))
+            is_corridor_locked = 0;
     }
 
     if (CanMove(trackSurface, newX, player->y, 7) && CanMove(trackSurface, newX, player->y, 6) &&
         CanMove(trackSurface, newX, player->y, 3) && CanMove(trackSurface, newX, player->y, 2)) {
         player->x = newX;
-    }
-
-    // Check whether the speed increase has ended
-    if (player->speed_increase_start != 0 && time(NULL) - player->speed_increase_start >= NITRO_LAST_TIME) {
-        player->speed = PLAYER_SPEED;
-        player->speed_increase_start = 0;
-    }
-
-    // Check whether player un/locks pitstop
-    Uint32 colorTop = GetPixel(trackSurface, player->x, newY - 1);
-    if (IsColor(colorTop, trackSurface->format, PITSTOP_IN_COLOR)) {
-        is_pitstop_locked = 1;
-        player->speed = PLAYER_SPEED_LOADING_NITRO;
-    }
-    else if (IsColor(colorTop, trackSurface->format, PITSTOP_OUT_COLOR)) {
-        is_pitstop_locked = 0;
-        player->speed = PLAYER_SPEED_NITRO;
-        player->speed_increase_start = time(NULL);
-    }
-
-    // Check whether player un/locks the corridor
-    Uint32 colorLeft = GetPixel(trackSurface, newX - 1, player->y);
-    if (IsColor(colorLeft, trackSurface->format, CORRIDOR_IN_COLOR)) {
-        is_corridor_locked = 1;
-    }
-    else if (IsColor(colorLeft, trackSurface->format, CORRIDOR_OUT_COLOR)) {
-        is_corridor_locked = 0;
-    }
-
-    player_update_direction(player);
 }
+
+    
+}
+
 
 void player_destroy(Player* player) {
     if (player) {

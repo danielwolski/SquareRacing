@@ -35,12 +35,10 @@ typedef struct {
 
 #define NUM_TRACK_POINTS 9
 
-const Color CORRIDOR_IN_COLOR = { 0, 0, 255 };    // red
-const Color CORRIDOR_OUT_COLOR = { 0, 255, 0 };  // green
-
-const Color PITSTOP_IN_COLOR = { 0, 255, 255 };   // yellow
-const Color PITSTOP_OUT_COLOR = { 255, 200, 0 }; // turkusowy
-
-const Color DONT_ENTER_COLOR = { 255, 255, 255 }; // white
+extern const Color CORRIDOR_IN_COLOR;
+extern const Color CORRIDOR_OUT_COLOR;
+extern const Color PITSTOP_IN_COLOR;
+extern const Color PITSTOP_OUT_COLOR;
+extern const Color DONT_ENTER_COLOR;
 
 #endif /* CONSTANTS_H */
