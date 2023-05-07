@@ -56,6 +56,8 @@ int main(int argc, char* argv[]) {
     SDL_DestroyTexture(target);
 
     Player* player = player_create(START_X_POS, START_Y_POS);
+    Player* player1 = player_create(START_X_POS + 100, START_Y_POS + 30);
+    player1->current_track_point = 3;
     bool quit = false;
     SDL_Event event;
 
@@ -67,8 +69,10 @@ int main(int argc, char* argv[]) {
         }
 
         player_update_position(player, trackSurface);
+        player_update_position(player1, trackSurface);
         
-        printf("current point %d\n", player->current_track_point);
+        printf("player did lock corridor %d\n", player->did_player_lock_corridor);
+        printf("player1 did lock corridor  %d\n", player1->did_player_lock_corridor);
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
@@ -76,6 +80,7 @@ int main(int argc, char* argv[]) {
         SDL_RenderCopy(renderer, trackTexture, NULL, NULL);
 
         DrawPlayer(renderer, player->x, player->y);
+        DrawPlayer(renderer, player1->x, player1->y);
         
         for (int i = 0; i < NUM_TRACK_POINTS; i++) {
         DrawPoint(renderer, track_points[i]);
