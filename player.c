@@ -1,4 +1,5 @@
 #include <time.h>
+#include <pthread.h>
 #include "player.h"
 #include "track.h"
 #include "constants.h"
@@ -76,6 +77,8 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
 
     // Check whether player un/locks pitstop
     if (player->directionY == -1) {
+        if (trackSurface == NULL)
+          printf("NO SURFACE HERE\n");
         Uint32 colorTop = GetPixel(trackSurface, player->x, newY - 1);
         printf("Raw colorTop: %u\n", colorTop);
         Uint8 r, g, b;
