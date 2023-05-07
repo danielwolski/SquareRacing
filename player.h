@@ -7,6 +7,7 @@
 
 extern int is_corridor_locked;
 extern int is_pitstop_locked;
+extern pthread_mutex_t mutex;
 
 typedef struct {
     int x;

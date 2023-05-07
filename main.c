@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
+#include <pthread.h>
 #include "player.h"
 #include "track.h"
 #include "graphics.h"
@@ -16,6 +17,26 @@ const Color DONT_ENTER_COLOR = { 255, 255, 255 };
 
 int is_corridor_locked = 0;
 int is_pitstop_locked = 0;
+
+// Add the global variables
+bool quit = false;
+pthread_mutex_t mutex;
+SDL_Surface* trackSurface;
+
+// player_thread_function będzie obsługiwać każdego gracza jako oddzielny wątek
+void* player_thread_function(void* player_ptr) {
+    Player* player = (Player*)player_ptr;
+
+    while (!quit) {
+        pthread_mutex_lock(&mutex);
+        player_update_position(player, trackSurface);
+        pthread_mutex_unlock(&mutex);
+
+        SDL_Delay(3);
+    }
+
+    return NULL;
+}
 
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_VIDEO);
@@ -40,8 +61,8 @@ int main(int argc, char* argv[]) {
         printf("Error loading track texture: %s\n", SDL_GetError());
         // Handle error or exit the program
     }
-
-    SDL_Surface* trackSurface = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+    
+      trackSurface = SDL_CreateRGBSurface(0, WINDOW_WIDTH, WINDOW_HEIGHT, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 
     if (trackSurface == NULL) {
         printf("Error creating track surface: %s\n", SDL_GetError());
@@ -54,11 +75,19 @@ int main(int argc, char* argv[]) {
     SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_RGBA32, trackSurface->pixels, trackSurface->pitch);
     SDL_SetRenderTarget(renderer, NULL);
     SDL_DestroyTexture(target);
-
+    
+    // Dodajemy wątki dla każdego gracza
+    pthread_t player_thread, player1_thread;
+    pthread_mutex_init(&mutex, NULL);
+    
     Player* player = player_create(START_X_POS, START_Y_POS);
     Player* player1 = player_create(START_X_POS + 100, START_Y_POS + 30);
     player1->current_track_point = 3;
-    bool quit = false;
+
+    // Inicjalizacja wątków dla każdego gracza
+    pthread_create(&player_thread, NULL, player_thread_function, (void*)player);
+    pthread_create(&player1_thread, NULL, player_thread_function, (void*)player1);
+    
     SDL_Event event;
 
     while (!quit) {
@@ -68,12 +97,6 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        player_update_position(player, trackSurface);
-        player_update_position(player1, trackSurface);
-        
-        printf("player did lock corridor %d\n", player->did_player_lock_corridor);
-        printf("player1 did lock corridor  %d\n", player1->did_player_lock_corridor);
-
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
         
@@ -82,19 +105,26 @@ int main(int argc, char* argv[]) {
         DrawPlayer(renderer, player->x, player->y);
         DrawPlayer(renderer, player1->x, player1->y);
         
-        for (int i = 0; i < NUM_TRACK_POINTS; i++) {
-        DrawPoint(renderer, track_points[i]);
-        }
+        pthread_mutex_lock(&mutex);
+        int current_corridor_lock_status = is_corridor_locked;
+        int current_pitstop_lock_status = is_pitstop_locked;
+        pthread_mutex_unlock(&mutex);
         
-        DrawLockStatusCircle(renderer, is_corridor_locked, -33);
-        DrawLockStatusCircle(renderer, is_pitstop_locked, 20);
+        //for (int i = 0; i < NUM_TRACK_POINTS; i++) {
+        //DrawPoint(renderer, track_points[i]);
+        //}
+        
+        DrawLockStatusCircle(renderer, current_corridor_lock_status, -33);
+        DrawLockStatusCircle(renderer, current_pitstop_lock_status, 20);
 
         SDL_RenderPresent(renderer);
         
         SDL_Delay(3);
     }
 
-    player_destroy(player);
+    // Oczekiwanie na zakończenie wątków
+    pthread_join(player_thread, NULL);
+    pthread_join(player1_thread, NULL);
     
     SDL_FreeSurface(trackSurface);
     SDL_DestroyTexture(trackTexture);
