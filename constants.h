@@ -33,7 +33,7 @@ typedef struct {
 
 #define CHECKING_MARGIN 3
 
-#define NUM_TRACK_POINTS 9
+#define NUM_TRACK_POINTS 10
 
 extern const Color CORRIDOR_IN_COLOR;
 extern const Color CORRIDOR_OUT_COLOR;

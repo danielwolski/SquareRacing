@@ -10,6 +10,8 @@ Player* player_create(int x, int y) {
     player->speed = PLAYER_SPEED;
     player->current_track_point = 0;
     player->speed_increase_start = 0;
+    player->did_player_lock_corridor = 0;
+    player->did_player_lock_pitstop = 0;
     return player;
 }
 
@@ -80,19 +82,21 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
         SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
         printf("RGB: (%d, %d, %d)\n", r, g, b);
 
-        if (IsColor(colorTop, trackSurface->format, PITSTOP_IN_COLOR)) {
+        if (IsColor(colorTop, trackSurface->format, PITSTOP_IN_COLOR) && is_pitstop_locked == 0) {
             is_pitstop_locked = 1;
+            player->did_player_lock_pitstop = 1;
             player->speed = PLAYER_SPEED_LOADING_NITRO;
         }
         else if (IsColor(colorTop, trackSurface->format, PITSTOP_OUT_COLOR)) {
             is_pitstop_locked = 0;
+            player->did_player_lock_pitstop = 0;
             player->speed = PLAYER_SPEED_NITRO;
             player->speed_increase_start = time(NULL);
         }
     }
 
-    if (CanMove(trackSurface, newX, newY, 1) && CanMove(trackSurface, newX, newY, 8) &&
-        CanMove(trackSurface, newX, newY, 5) && CanMove(trackSurface, newX, newY, 4)) {
+    if (CanMove(trackSurface, newX, newY, 1, player->did_player_lock_pitstop, player->did_player_lock_corridor) && CanMove(trackSurface, newX, newY, 8, player->did_player_lock_pitstop, player->did_player_lock_corridor) &&
+        CanMove(trackSurface, newX, newY, 5, player->did_player_lock_pitstop, player->did_player_lock_corridor) && CanMove(trackSurface, newX, newY, 4, player->did_player_lock_pitstop, player->did_player_lock_corridor)) {
         player->y = newY;
     }
 
@@ -113,14 +117,18 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
         SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
         printf("RGB: (%d, %d, %d)\n", r, g, b);
 
-        if (IsColor(colorTop, trackSurface->format, CORRIDOR_IN_COLOR))
+        if (IsColor(colorTop, trackSurface->format, CORRIDOR_IN_COLOR) && is_corridor_locked == 0){
             is_corridor_locked = 1;
-        else if (IsColor(colorTop, trackSurface->format, CORRIDOR_OUT_COLOR))
+            player->did_player_lock_corridor = 1;
+            }
+        else if (IsColor(colorTop, trackSurface->format, CORRIDOR_OUT_COLOR)){
             is_corridor_locked = 0;
+            player->did_player_lock_corridor = 0;
+            }
     }
 
-    if (CanMove(trackSurface, newX, player->y, 7) && CanMove(trackSurface, newX, player->y, 6) &&
-        CanMove(trackSurface, newX, player->y, 3) && CanMove(trackSurface, newX, player->y, 2)) {
+    if (CanMove(trackSurface, newX, player->y, 7, player->did_player_lock_pitstop, player->did_player_lock_corridor) && CanMove(trackSurface, newX, player->y, 6, player->did_player_lock_pitstop, player->did_player_lock_corridor) &&
+        CanMove(trackSurface, newX, player->y, 3, player->did_player_lock_pitstop, player->did_player_lock_corridor) && CanMove(trackSurface, newX, player->y, 2, player->did_player_lock_pitstop, player->did_player_lock_corridor)) {
         player->x = newX;
 }
 

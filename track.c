@@ -9,7 +9,8 @@ SDL_Point track_points[NUM_TRACK_POINTS] = {
         {1200, 500},
         {1000, 540},
         {510, 540},
-        {75, 485},
+        {55, 485},
+        {55, 405},
         {75, 210},
 };
 
@@ -36,7 +37,7 @@ Uint32 GetPixel(SDL_Surface* surface, int x, int y) {
     }
 }
 
-bool CanMove(SDL_Surface* surface, int x, int y, int direction) {
+bool CanMove(SDL_Surface* surface, int x, int y, int direction, int did_player_lock_pitstop, int did_player_lock_corridor) {
     Uint32 color = 0;
 
     switch (direction) {
@@ -67,6 +68,11 @@ bool CanMove(SDL_Surface* surface, int x, int y, int direction) {
     default:
         break;
     }
+    
+    if (is_pitstop_locked == 1 && IsColor(color, surface->format, PITSTOP_IN_COLOR) && did_player_lock_pitstop == 0)
+      return false;
+    if (is_corridor_locked == 1 && IsColor(color, surface->format, CORRIDOR_IN_COLOR) && did_player_lock_corridor == 0)
+      return false;
 
     return !IsColor(color, surface->format, DONT_ENTER_COLOR);
 }
