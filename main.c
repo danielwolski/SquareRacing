@@ -18,6 +18,11 @@ const Color DONT_ENTER_COLOR = { 255, 255, 255 };
 int is_corridor_locked = 0;
 int is_pitstop_locked = 0;
 
+#define FPS 60
+#define FRAME_DURATION (1000 / FPS)
+
+Uint32 frame_start_time, frame_end_time, frame_elapsed_time;
+
 // Add the global variables
 bool quit = false;
 pthread_mutex_t mutex;
@@ -28,11 +33,18 @@ void* player_thread_function(void* player_ptr) {
     Player* player = (Player*)player_ptr;
 
     while (!quit) {
+        frame_start_time = SDL_GetTicks();
+
         pthread_mutex_lock(&mutex);
         player_update_position(player, trackSurface);
         pthread_mutex_unlock(&mutex);
 
-        SDL_Delay(3);
+        frame_end_time = SDL_GetTicks();
+        frame_elapsed_time = frame_end_time - frame_start_time;
+
+        if (frame_elapsed_time < FRAME_DURATION) {
+            SDL_Delay(FRAME_DURATION - frame_elapsed_time);
+        }
     }
 
     return NULL;
@@ -77,16 +89,22 @@ int main(int argc, char* argv[]) {
     SDL_DestroyTexture(target);
     
     // Dodajemy wątki dla każdego gracza
-    pthread_t player_thread, player1_thread;
+    pthread_t player_thread, player1_thread, player2_thread, player3_thread;
     pthread_mutex_init(&mutex, NULL);
     
     Player* player = player_create(START_X_POS, START_Y_POS);
     Player* player1 = player_create(START_X_POS + 100, START_Y_POS + 30);
+    Player* player2 = player_create(START_X_POS + 150, START_Y_POS + 30);
+    Player* player3 = player_create(START_X_POS + 200, START_Y_POS + 30);
     player1->current_track_point = 3;
+    player2->current_track_point = 3;
+    player3->current_track_point = 3;
 
     // Inicjalizacja wątków dla każdego gracza
     pthread_create(&player_thread, NULL, player_thread_function, (void*)player);
     pthread_create(&player1_thread, NULL, player_thread_function, (void*)player1);
+    pthread_create(&player2_thread, NULL, player_thread_function, (void*)player2);
+    pthread_create(&player3_thread, NULL, player_thread_function, (void*)player3);
     
     SDL_Event event;
 
@@ -104,6 +122,8 @@ int main(int argc, char* argv[]) {
 
         DrawPlayer(renderer, player->x, player->y);
         DrawPlayer(renderer, player1->x, player1->y);
+        DrawPlayer(renderer, player2->x, player2->y);
+        DrawPlayer(renderer, player3->x, player3->y);
         
         pthread_mutex_lock(&mutex);
         int current_corridor_lock_status = is_corridor_locked;
@@ -125,6 +145,8 @@ int main(int argc, char* argv[]) {
     // Oczekiwanie na zakończenie wątków
     pthread_join(player_thread, NULL);
     pthread_join(player1_thread, NULL);
+    pthread_join(player2_thread, NULL);
+    pthread_join(player3_thread, NULL);
     
     SDL_FreeSurface(trackSurface);
     SDL_DestroyTexture(trackTexture);

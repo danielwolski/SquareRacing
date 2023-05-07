@@ -85,7 +85,6 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
         SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
         printf("RGB: (%d, %d, %d)\n", r, g, b);
 
-        pthread_mutex_lock(&mutex);
         if (IsColor(colorTop, trackSurface->format, PITSTOP_IN_COLOR) && is_pitstop_locked == 0) {
             is_pitstop_locked = 1;
             player->did_player_lock_pitstop = 1;
@@ -97,7 +96,6 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
             player->speed = PLAYER_SPEED_NITRO;
             player->speed_increase_start = time(NULL);
         }
-        pthread_mutex_unlock(&mutex);
     }
 
     if (CanMove(trackSurface, newX, newY, 1, player->did_player_lock_pitstop, player->did_player_lock_corridor) && CanMove(trackSurface, newX, newY, 8, player->did_player_lock_pitstop, player->did_player_lock_corridor) &&
@@ -122,7 +120,6 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
         SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
         printf("RGB: (%d, %d, %d)\n", r, g, b);
 
-        pthread_mutex_lock(&mutex);
         if (IsColor(colorTop, trackSurface->format, CORRIDOR_IN_COLOR) && is_corridor_locked == 0){
             is_corridor_locked = 1;
             player->did_player_lock_corridor = 1;
@@ -131,7 +128,6 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
             is_corridor_locked = 0;
             player->did_player_lock_corridor = 0;
             }
-        pthread_mutex_unlock(&mutex);
     }
 
     if (CanMove(trackSurface, newX, player->y, 7, player->did_player_lock_pitstop, player->did_player_lock_corridor) && CanMove(trackSurface, newX, player->y, 6, player->did_player_lock_pitstop, player->did_player_lock_corridor) &&
