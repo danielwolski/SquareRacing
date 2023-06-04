@@ -17,8 +17,22 @@ SDL_Texture* loadTexture(const char* filename, SDL_Renderer* renderer) {
     return texture;
 }
 
-void DrawPlayer(SDL_Renderer* renderer, int x, int y) {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+void DrawPlayer(SDL_Renderer* renderer, int x, int y, int color) {
+    switch(color){
+        case 0:
+            SDL_SetRenderDrawColor(renderer, 200, 0, 0, 255);
+            break;
+        case 1:
+            SDL_SetRenderDrawColor(renderer, 0, 200, 0, 255);
+            break;
+        case 2:
+            SDL_SetRenderDrawColor(renderer, 0, 0, 200, 255);
+            break;
+        default:
+            SDL_SetRenderDrawColor(renderer, 100, 100, 0, 255);
+            break;
+    }
+    //SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_Rect player = { x, y, PLAYER_SQUARE_SIZE, PLAYER_SQUARE_SIZE };
     SDL_RenderFillRect(renderer, &player);
 }

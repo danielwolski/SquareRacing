@@ -39,6 +39,9 @@ Uint32 GetPixel(SDL_Surface* surface, int x, int y) {
 
 bool CanMove(SDL_Surface* surface, int x, int y, int direction, int did_player_lock_pitstop, int did_player_lock_corridor) {
     Uint32 color = 0;
+    Color c1 = { 0, 0, 100 };
+    Color c2 = { 0, 100, 0 };
+    Color c3 = { 100, 0, 0 };
 
     switch (direction) {
     case 1:
@@ -69,9 +72,9 @@ bool CanMove(SDL_Surface* surface, int x, int y, int direction, int did_player_l
         break;
     }
     
-    if (is_pitstop_locked == 1 && IsColor(color, surface->format, PITSTOP_IN_COLOR) && did_player_lock_pitstop == 0)
+    if ((is_pitstop_locked == 1 && IsColor(color, surface->format, PITSTOP_IN_COLOR) && did_player_lock_pitstop == 0) || IsColor(color, surface->format, c1) || IsColor(color, surface->format, c2) || IsColor(color, surface->format, c3))
       return false;
-    if (is_corridor_locked == 1 && IsColor(color, surface->format, CORRIDOR_IN_COLOR) && did_player_lock_corridor == 0)
+    if ((is_corridor_locked == 1 && IsColor(color, surface->format, CORRIDOR_IN_COLOR) && did_player_lock_corridor == 0) || IsColor(color, surface->format, c1) || IsColor(color, surface->format, c2) || IsColor(color, surface->format, c3))
       return false;
 
     return !IsColor(color, surface->format, DONT_ENTER_COLOR);
