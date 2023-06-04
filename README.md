@@ -12,6 +12,11 @@ sudo apt-get install libsdl2-image-dev
 
 ## Run
 
-gcc -o game main.c player.c track.c graphics.c \`sdl2-config --cflags --libs\` -lSDL2_image
+gcc -o serwer main.c player.c track.c graphics.c \`sdl2-config --cflags --libs\` -lSDL2_image
 
-./game
+gcc -o klient client.c graphics.c \`sdl2-config --cflags --libs\` -lSDL2_image
+
+./serwer
+
+./klient
+(x3)
