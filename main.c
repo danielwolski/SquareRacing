@@ -4,10 +4,15 @@
 #include <stdbool.h>
 #include <time.h>
 #include <pthread.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/socket.h>
 #include "player.h"
 #include "track.h"
 #include "graphics.h"
 #include "constants.h"
+
+#define MAX_PLAYERS 3
 
 const Color CORRIDOR_IN_COLOR = { 0, 0, 255 };
 const Color CORRIDOR_OUT_COLOR = { 0, 255, 0 };
@@ -27,6 +32,15 @@ Uint32 frame_start_time, frame_end_time, frame_elapsed_time;
 bool quit = false;
 pthread_mutex_t mutex;
 SDL_Surface* trackSurface;
+int clientSockets[MAX_PLAYERS];
+
+typedef struct {
+    int id;
+    int x;
+    int y;
+} PlayerData;
+
+PlayerData playersData[MAX_PLAYERS];
 
 // player_thread_function będzie obsługiwać każdego gracza jako oddzielny wątek
 void* player_thread_function(void* player_ptr) {
@@ -37,8 +51,13 @@ void* player_thread_function(void* player_ptr) {
 
         pthread_mutex_lock(&mutex);
         player_update_position(player, trackSurface);
-        pthread_mutex_unlock(&mutex);
 
+        // Zaktualizuj dane gracza zamiast wysyłać je
+        playersData[player->color].id = player->color;
+        playersData[player->color].x = player->x;
+        playersData[player->color].y = player->y;
+        pthread_mutex_unlock(&mutex);
+        
         frame_end_time = SDL_GetTicks();
         frame_elapsed_time = frame_end_time - frame_start_time;
 
@@ -88,42 +107,99 @@ int main(int argc, char* argv[]) {
     SDL_SetRenderTarget(renderer, NULL);
     SDL_DestroyTexture(target);
     
-    // Dodajemy wątki dla każdego gracza
-    pthread_t player_thread, player1_thread, player2_thread, player3_thread;
-    pthread_mutex_init(&mutex, NULL);
-    
-    Player* player = player_create(START_X_POS, START_Y_POS);
-    Player* player1 = player_create(START_X_POS + 100, START_Y_POS + 30);
-    Player* player2 = player_create(START_X_POS + 150, START_Y_POS + 30);
-    Player* player3 = player_create(START_X_POS + 200, START_Y_POS + 30);
-    player1->current_track_point = 3;
-    player2->current_track_point = 3;
-    player3->current_track_point = 3;
+    int serverSocket;
+    struct sockaddr_in serverAddr, clientAddr;
+    socklen_t clientAddrLen = sizeof(clientAddr);
+    int connectedPlayers = 0;
 
-    // Inicjalizacja wątków dla każdego gracza
-    pthread_create(&player_thread, NULL, player_thread_function, (void*)player);
-    pthread_create(&player1_thread, NULL, player_thread_function, (void*)player1);
-    pthread_create(&player2_thread, NULL, player_thread_function, (void*)player2);
-    pthread_create(&player3_thread, NULL, player_thread_function, (void*)player3);
-    
-    SDL_Event event;
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (serverSocket < 0) {
+        perror("socket");
+        exit(EXIT_FAILURE);
+    }
 
-    while (!quit) {
-        while (SDL_PollEvent(&event) != 0) {
-            if (event.type == SDL_QUIT) {
-                quit = true;
-            }
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(1234);
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
+        perror("bind");
+        exit(EXIT_FAILURE);
+    }
+
+    if (listen(serverSocket, 1) < 0) {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    while (connectedPlayers < MAX_PLAYERS) {
+        int newSocket = accept(serverSocket, (struct sockaddr *)&clientAddr, &clientAddrLen);
+        if (newSocket < 0) {
+            perror("accept");
+            exit(EXIT_FAILURE);
+        } else {
+            printf("Connected with IP: %s, port: %hu\n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
+            clientSockets[connectedPlayers] = newSocket;
+            
+            // Wysyłamy klientowi jego unikalne ID
+        if (send(newSocket, &connectedPlayers, sizeof(int), 0) < 0) {
+            perror("send");
+            break;
         }
+        
+            connectedPlayers++;
+        }
+    }
 
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    // Inicjalizacja SDL
+    //SDL_Init(SDL_INIT_VIDEO);
+
+    // Dodajemy wątki dla każdego gracza
+    pthread_t player_threads[MAX_PLAYERS];
+    pthread_mutex_init(&mutex, NULL);
+
+    Player* players[MAX_PLAYERS];
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        players[i] = player_create(START_X_POS + i*50, START_Y_POS);
+        players[i]->color = i;
+
+        // Inicjalizacja wątków dla każdego gracza
+        pthread_create(&player_threads[i], NULL, player_thread_function, (void*)players[i]);
+    }
+
+  SDL_Event e;
+  bool running = true;
+  while (running) {
+
+    while (SDL_PollEvent(&e) != 0) {
+        if (e.type == SDL_QUIT) {
+            running = false;
+        }
+    }
+    
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
         
         SDL_RenderCopy(renderer, trackTexture, NULL, NULL);
+        
+        // Po zaktualizowaniu wszystkich graczy, wysyłamy informacje o nich do wszystkich klientów
+        for (int i = 0; i < MAX_PLAYERS; i++) {
+            int sent = send(clientSockets[i], &playersData, sizeof(playersData), 0);
+            if (sent <= 0) {
+                perror("send");
+                break;
+            }
+        }
+        
+        for (int i = 0; i < MAX_PLAYERS; i++) {
+          DrawPlayer(renderer,players[i]->x, players[i]->y,players[i]->color);
+        }
 
-        DrawPlayer(renderer, player->x, player->y);
-        DrawPlayer(renderer, player1->x, player1->y);
-        DrawPlayer(renderer, player2->x, player2->y);
-        DrawPlayer(renderer, player3->x, player3->y);
+        //DrawPlayer(renderer, player->x, player->y, player->color);
+        //DrawPlayer(renderer, player1->x, player1->y, player1->color);
+        //DrawPlayer(renderer, player2->x, player2->y, player2->color);
+        //DrawPlayer(renderer, player3->x, player3->y);
         
         pthread_mutex_lock(&mutex);
         int current_corridor_lock_status = is_corridor_locked;
@@ -140,19 +216,22 @@ int main(int argc, char* argv[]) {
         SDL_RenderPresent(renderer);
         
         SDL_Delay(3);
+        
+        usleep(100000);
     }
 
     // Oczekiwanie na zakończenie wątków
-    pthread_join(player_thread, NULL);
-    pthread_join(player1_thread, NULL);
-    pthread_join(player2_thread, NULL);
-    pthread_join(player3_thread, NULL);
-    
-    SDL_FreeSurface(trackSurface);
-    SDL_DestroyTexture(trackTexture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        pthread_join(player_threads[i], NULL);
+    }
+
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        close(clientSockets[i]);
+    }
+
+    close(serverSocket);
     SDL_Quit();
 
     return 0;
 }
+

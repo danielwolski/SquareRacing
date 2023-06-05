@@ -52,11 +52,11 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
     current_point.x = track_points[player->current_track_point].x;
     current_point.y = track_points[player->current_track_point].y;
 
-    printf("x_player: %d y_player: %d\n", player->x, player->y);
-    printf("x: %d y: %d\n", current_point.x, current_point.y);
+    //printf("x_player: %d y_player: %d\n", player->x, player->y);
+    //printf("x: %d y: %d\n", current_point.x, current_point.y);
 
     if (abs(player->x - current_point.x) <= CHECKING_MARGIN && abs(player->y - current_point.y) <= CHECKING_MARGIN) {
-        printf("SUCCESS\n");
+        //printf("SUCCESS\n");
         player->current_track_point++;
     }
 
@@ -80,10 +80,10 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
         if (trackSurface == NULL)
           printf("NO SURFACE HERE\n");
         Uint32 colorTop = GetPixel(trackSurface, player->x, newY - 1);
-        printf("Raw colorTop: %u\n", colorTop);
+        //printf("Raw colorTop: %u\n", colorTop);
         Uint8 r, g, b;
         SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
-        printf("RGB: (%d, %d, %d)\n", r, g, b);
+        //printf("RGB: (%d, %d, %d)\n", r, g, b);
 
         if (IsColor(colorTop, trackSurface->format, PITSTOP_IN_COLOR) && is_pitstop_locked == 0) {
             is_pitstop_locked = 1;
@@ -115,10 +115,10 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
     // Check whether player un/locks the corridor
     if (player->directionX == -1) {
         Uint32 colorTop = GetPixel(trackSurface, newX - 1, player->y);
-        printf("Raw colorLeft: %u\n", colorTop);
+        //printf("Raw colorLeft: %u\n", colorTop);
         Uint8 r, g, b;
         SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
-        printf("RGB: (%d, %d, %d)\n", r, g, b);
+        //printf("RGB: (%d, %d, %d)\n", r, g, b);
 
         if (IsColor(colorTop, trackSurface->format, CORRIDOR_IN_COLOR) && is_corridor_locked == 0){
             is_corridor_locked = 1;
