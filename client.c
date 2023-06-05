@@ -22,6 +22,8 @@ typedef struct {
 
 SDL_Surface* trackSurface;
 
+int playerID;
+
 int main() {
 
      SDL_Init(SDL_INIT_VIDEO);
@@ -40,7 +42,7 @@ int main() {
         // Handle error or exit the program
     }
 
-    SDL_Texture* trackTexture = loadTexture("track.png", renderer);
+    SDL_Texture* trackTexture = loadTexture("track_client.png", renderer);
 
     if (trackTexture == NULL) {
         printf("Error loading track texture: %s\n", SDL_GetError());
@@ -80,9 +82,25 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    PlayerData playersData[MAX_PLAYERS];
 
-    while (1) {
+    // Odbieramy nasze unikalne ID od serwera
+    if (recv(clientSocket, &playerID, sizeof(int), 0) <= 0) {
+        perror("recv");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Jestem %d\n", playerID);
+        PlayerData playersData[MAX_PLAYERS];
+    
+    SDL_Event e;
+    bool running = true;
+    while (running) {
+    
+        while (SDL_PollEvent(&e) != 0) {
+          if (e.type == SDL_QUIT) {
+              running = false;
+          }
+        }
     
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
@@ -104,6 +122,7 @@ int main() {
         for (int i = 0; i < MAX_PLAYERS; i++) {
           DrawPlayer(renderer,playersData[i].x, playersData[i].y,playersData[i].id);
         }
+        DrawPlayer(renderer,25,25,playerID);
         
         SDL_RenderPresent(renderer);
     }

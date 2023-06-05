@@ -141,6 +141,13 @@ int main(int argc, char* argv[]) {
         } else {
             printf("Connected with IP: %s, port: %hu\n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
             clientSockets[connectedPlayers] = newSocket;
+            
+            // Wysyłamy klientowi jego unikalne ID
+        if (send(newSocket, &connectedPlayers, sizeof(int), 0) < 0) {
+            perror("send");
+            break;
+        }
+        
             connectedPlayers++;
         }
     }
@@ -161,7 +168,16 @@ int main(int argc, char* argv[]) {
         pthread_create(&player_threads[i], NULL, player_thread_function, (void*)players[i]);
     }
 
-    while (!quit) {
+  SDL_Event e;
+  bool running = true;
+  while (running) {
+
+    while (SDL_PollEvent(&e) != 0) {
+        if (e.type == SDL_QUIT) {
+            running = false;
+        }
+    }
+    
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
         
