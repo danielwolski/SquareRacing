@@ -15,10 +15,12 @@ typedef struct {
     int y;
 } Point;
 
+#define MAX_PLAYERS 3
+
 #define PLAYER_SQUARE_SIZE 20
-#define PLAYER_SPEED 5
+#define PLAYER_SPEED 3
 #define PLAYER_SPEED_LOADING_NITRO 1
-#define PLAYER_SPEED_NITRO 8
+#define PLAYER_SPEED_NITRO 6
 
 #define NITRO_LAST_TIME 4
 

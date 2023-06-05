@@ -4,6 +4,8 @@
 #include "track.h"
 #include "constants.h"
 
+pthread_mutex_t lock; 
+
 Player* player_create(int x, int y) {
     Player* player = (Player*)malloc(sizeof(Player));
     player->x = x;
@@ -20,6 +22,9 @@ void player_update_direction(Player* player) {
     if (player->current_track_point + 1 >= sizeof(track_points) / sizeof(track_points[0])) {
         player->current_track_point = 0;
     }
+    
+    if (player->current_track_point == 7 && is_pitstop_locked == 1)
+        player->current_track_point = 0;
 
     Point next;
     next.x = track_points[player->current_track_point].x;
@@ -44,6 +49,7 @@ void player_update_direction(Player* player) {
 
 
 void player_update_position(Player* player, SDL_Surface* trackSurface) {
+    pthread_mutex_init(&lock, NULL);
     static int speed = PLAYER_SPEED;
     int newX = player->x, newY = player->y;
 
@@ -120,14 +126,18 @@ void player_update_position(Player* player, SDL_Surface* trackSurface) {
         SDL_GetRGB(colorTop, trackSurface->format, &r, &g, &b);
         //printf("RGB: (%d, %d, %d)\n", r, g, b);
 
+        pthread_mutex_lock(&lock);
         if (IsColor(colorTop, trackSurface->format, CORRIDOR_IN_COLOR) && is_corridor_locked == 0){
+            //pthread_mutex_lock(&lock);
             is_corridor_locked = 1;
             player->did_player_lock_corridor = 1;
+            //pthread_mutex_unlock(&lock);
             }
         else if (IsColor(colorTop, trackSurface->format, CORRIDOR_OUT_COLOR)){
             is_corridor_locked = 0;
             player->did_player_lock_corridor = 0;
             }
+        pthread_mutex_unlock(&lock);
     }
 
     if (CanMove(trackSurface, newX, player->y, 7, player->did_player_lock_pitstop, player->did_player_lock_corridor) && CanMove(trackSurface, newX, player->y, 6, player->did_player_lock_pitstop, player->did_player_lock_corridor) &&
