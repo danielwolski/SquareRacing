@@ -12,8 +12,6 @@
 #include "graphics.h"
 #include "constants.h"
 
-#define MAX_PLAYERS 3
-
 const Color CORRIDOR_IN_COLOR = { 0, 0, 255 };
 const Color CORRIDOR_OUT_COLOR = { 0, 255, 0 };
 const Color PITSTOP_IN_COLOR = { 0, 255, 255 };
@@ -51,12 +49,12 @@ void* player_thread_function(void* player_ptr) {
 
         pthread_mutex_lock(&mutex);
         player_update_position(player, trackSurface);
+        pthread_mutex_unlock(&mutex);
 
         // Zaktualizuj dane gracza zamiast wysyłać je
         playersData[player->color].id = player->color;
         playersData[player->color].x = player->x;
         playersData[player->color].y = player->y;
-        pthread_mutex_unlock(&mutex);
         
         frame_end_time = SDL_GetTicks();
         frame_elapsed_time = frame_end_time - frame_start_time;
@@ -161,7 +159,7 @@ int main(int argc, char* argv[]) {
 
     Player* players[MAX_PLAYERS];
     for (int i = 0; i < MAX_PLAYERS; i++) {
-        players[i] = player_create(START_X_POS + i*50, START_Y_POS);
+        players[i] = player_create(START_X_POS + i*70, START_Y_POS);
         players[i]->color = i;
 
         // Inicjalizacja wątków dla każdego gracza
@@ -206,9 +204,9 @@ int main(int argc, char* argv[]) {
         int current_pitstop_lock_status = is_pitstop_locked;
         pthread_mutex_unlock(&mutex);
         
-        //for (int i = 0; i < NUM_TRACK_POINTS; i++) {
-        //DrawPoint(renderer, track_points[i]);
-        //}
+        for (int i = 0; i < NUM_TRACK_POINTS; i++) {
+          DrawPoint(renderer, track_points[i]);
+        }
         
         DrawLockStatusCircle(renderer, current_corridor_lock_status, -33);
         DrawLockStatusCircle(renderer, current_pitstop_lock_status, 20);

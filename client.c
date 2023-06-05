@@ -12,8 +12,6 @@
 #include "graphics.h"
 #include "constants.h"
 
-#define MAX_PLAYERS 3
-
 typedef struct {
     int id;
     int x;
